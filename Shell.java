@@ -8,21 +8,23 @@ import java.util.ArrayList;
 class Shell {
 
     public static RuntimeCatcher catcher;
+    public static Process process;
 
     public static void main(String[] args) throws Exception {
         // AdbPairService.aliasAdbLib(getApplicationInfo().nativeLibraryDir); In the Android , We need to alias libadb.so for use adb
-        catcher = new RuntimeCatcher(AdbPairService.pair("0.0.0.0", "123", "123456"));
+        process = AdbService.pair("0.0.0.0", "123", "123456");
+        catcher = new RuntimeCatcher();
         catcher.start();
         final int result = process.waitFor();
         catcher.stop();
-        System.out.println(isPairSuccess(catcher.inputText));
+        System.out.println(AdbService.isPairSuccess(catcher.inputText));
     }
 
 }
 
-class AdbPairService {
+class AdbService {
     public static void aliasAdbLib(String libPath){
-        Runtime.getRuntime().exec("alias adb=\'"+ libPath +"/libadb.so\'");
+        Runtime.getRuntime().exec("alias adb=\'"+ libPath +"/libadb.so\'").waitFor();
     }
 
     public static Process pair(String ip, String port, String code) {
