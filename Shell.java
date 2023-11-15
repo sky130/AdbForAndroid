@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 class Shell {
 
@@ -11,24 +12,57 @@ class Shell {
     public static Process process;
 
     public static void main(String[] args) throws Exception {
-        // AdbPairService.aliasAdbLib(getApplicationInfo().nativeLibraryDir); In the Android , We need to alias libadb.so for use adb
-        process = AdbService.pair("0.0.0.0", "123", "123456");
-        catcher = new RuntimeCatcher();
+        // AdbService.aliasAdbLib(getApplicationInfo().nativeLibraryDir); In the
+        // Android , We need to alias libadb.so for use adb
+        // process = AdbService.pair("0.0.0.0", "123", "123456");
+        // catcher = new RuntimeCatcher(process);
+        // catcher.start();
+        // final int result = process.waitFor();
+        // catcher.stop();
+        // System.out.println(AdbService.isPairSuccess(catcher.inputText));
+
+        process = AdbService.shell(AdbService.ADB_SHELL, "ls", "/sdcard/");
+        catcher = new RuntimeCatcher(process);
         catcher.start();
-        final int result = process.waitFor();
+        process.waitFor();
         catcher.stop();
-        System.out.println(AdbService.isPairSuccess(catcher.inputText));
+        System.out.println(catcher.inputText.toString());
     }
 
 }
 
 class AdbService {
-    public static void aliasAdbLib(String libPath){
-        Runtime.getRuntime().exec("alias adb=\'"+ libPath +"/libadb.so\'").waitFor();
+    public static final String CMD = "cmd";
+    public static final String SH = "sh";
+    public static final String ADB = "adb";
+    public static final String ADB_SHELL = "adb_shell";
+    public static final String SU = "su";
+
+    public static Process shell(String mode, String... args) throws IOException {
+        String[] cache = { mode };
+        if (args.length == 0)
+            return Runtime.getRuntime().exec(cache);
+        if (mode.equals(ADB_SHELL)) {
+            cache = new String[2 + args.length];
+            cache[0] = ADB;
+            cache[1] = "shell";
+            System.arraycopy(args, 0, cache, 2, cache.length - 2);
+        } else {
+            cache = new String[1 + args.length];
+            cache[0] = mode;
+            System.arraycopy(args, 0, cache, 1, cache.length - 1);
+        }
+        return Runtime.getRuntime().exec(cache);
     }
 
-    public static Process pair(String ip, String port, String code) {
-        return Runtime.getRuntime().exec("adb pair " + ip + ":" + port + " " + code);
+    public static void aliasAdbLib(String libPath) throws IOException, InterruptedException {
+        String[] commands = { "alias adb=\'", libPath, "/libadb.so\'" };
+        Runtime.getRuntime().exec(commands).waitFor();
+    }
+
+    public static Process pair(String ip, String port, String code) throws IOException {
+        String[] commands = { "adb", "pair", ip + ":" + port, code };
+        return Runtime.getRuntime().exec(commands);
     }
 
     public static boolean isPairSuccess(ArrayList<String> list) {
